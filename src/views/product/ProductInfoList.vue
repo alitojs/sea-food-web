@@ -1,16 +1,7 @@
 <template>
   <div>
     <!--引用表格-->
-    <BasicTable @register="registerTable" :rowSelection="rowSelection" :expandedRowKeys="expandedRowKeys" @expand="handleExpand">
-      <!-- 内嵌table区域 begin -->
-      <template #expandedRowRender="{ record }">
-        <a-tabs tabPosition="top">
-          <a-tab-pane tab="商品规格表" key="productSpecification" forceRender>
-            <productSpecificationSubTable :id="expandedRowKeys[0]" />
-          </a-tab-pane>
-        </a-tabs>
-      </template>
-      <!-- 内嵌table区域 end -->
+    <BasicTable @register="registerTable" :rowSelection="rowSelection">
       <!--插槽:table标题-->
       <template #tableTitle>
         <a-button type="primary" @click="handleAdd" preIcon="ant-design:plus-outlined"> 新增</a-button>
@@ -51,17 +42,15 @@
   import { useListPage } from '/@/hooks/system/useListPage';
   import { useModal } from '/@/components/Modal';
   import ProductInfoModal from './components/ProductInfoModal.vue';
-  import ProductSpecificationSubTable from './subTables/ProductSpecificationSubTable.vue';
   import { columns, searchFormSchema, superQuerySchema } from './ProductInfo.data';
   import { list, deleteOne, batchDelete, getImportUrl, getExportUrl } from './ProductInfo.api';
   import { downloadFile } from '/@/utils/common/renderUtils';
   import { useUserStore } from '/@/store/modules/user';
   const queryParam = reactive<any>({});
-  // 展开key
-  const expandedRowKeys = ref<any[]>([]);
+  const checkedKeys = ref<Array<string | number>>([]);
+  const userStore = useUserStore();
   //注册model
   const [registerModal, { openModal }] = useModal();
-  const userStore = useUserStore();
   //注册table数据
   const { prefixCls, tableContext, onExportXls, onImportXls } = useListPage({
     tableProps: {
@@ -111,15 +100,6 @@
     reload();
   }
 
-  /**
-   * 展开事件
-   * */
-  function handleExpand(expanded, record) {
-    expandedRowKeys.value = [];
-    if (expanded === true) {
-      expandedRowKeys.value.push(record.id);
-    }
-  }
   /**
    * 新增事件
    */
