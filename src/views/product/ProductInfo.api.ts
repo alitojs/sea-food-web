@@ -1,12 +1,12 @@
-import { defHttp } from '/@/utils/http/axios';
-import { useMessage } from '/@/hooks/web/useMessage';
+import {defHttp} from '/@/utils/http/axios';
+import { useMessage } from "/@/hooks/web/useMessage";
 
 const { createConfirm } = useMessage();
 
 enum Api {
   list = '/productInfo/list',
-  save = '/productInfo/add',
-  edit = '/productInfo/edit',
+  save='/productInfo/add',
+  edit='/productInfo/edit',
   deleteOne = '/productInfo/delete',
   deleteBatch = '/productInfo/deleteBatch',
   importExcel = '/productInfo/importExcel',
@@ -24,24 +24,25 @@ export const getExportUrl = Api.exportXls;
  */
 export const getImportUrl = Api.importExcel;
 /**
- * 查询子表数据
+ * 子表单查询接口
  * @param params
  */
-export const productSpecificationList = Api.productSpecificationList;
+export const queryProductSpecification = Api.productSpecificationList
 /**
  * 列表接口
  * @param params
  */
-export const list = (params) => defHttp.get({ url: Api.list, params });
+export const list = (params) =>
+  defHttp.get({url: Api.list, params});
 
 /**
  * 删除单个
  */
-export const deleteOne = (params, handleSuccess) => {
-  return defHttp.delete({ url: Api.deleteOne, params }, { joinParamsToUrl: true }).then(() => {
+export const deleteOne = (params,handleSuccess) => {
+  return defHttp.delete({url: Api.deleteOne, params}, {joinParamsToUrl: true}).then(() => {
     handleSuccess();
   });
-};
+}
 /**
  * 批量删除
  * @param params
@@ -54,17 +55,23 @@ export const batchDelete = (params, handleSuccess) => {
     okText: '确认',
     cancelText: '取消',
     onOk: () => {
-      return defHttp.delete({ url: Api.deleteBatch, data: params }, { joinParamsToUrl: true }).then(() => {
+      return defHttp.delete({url: Api.deleteBatch, data: params}, {joinParamsToUrl: true}).then(() => {
         handleSuccess();
       });
-    },
+    }
   });
-};
+}
 /**
  * 保存或者更新
  * @param params
  */
 export const saveOrUpdate = (params, isUpdate) => {
-  const url = isUpdate ? Api.edit : Api.save;
-  return defHttp.post({ url: url, params });
-};
+  let url = isUpdate ? Api.edit : Api.save;
+  return defHttp.post({url: url, params});
+}
+/**
+ * 子表列表接口
+ * @param params
+ */
+export const productSpecificationList = (params) =>
+  defHttp.get({url: Api.productSpecificationList, params},{isTransformResponse:false});
