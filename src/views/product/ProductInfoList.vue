@@ -47,7 +47,7 @@
     </BasicTable>
     <!-- 表单区域 -->
     <ProductInfoModal @register="registerModal" @success="handleSuccess"></ProductInfoModal>
-    <BatchHandleUpdateWarehouseModal ref="batchHandleUpdateWarehouseModalRef"/>
+    <BatchHandleUpdateWarehouseModal ref="batchHandleUpdateWarehouseModalRef" @submit="bhSubmit"/>
   </div>
 </template>
 
@@ -111,6 +111,10 @@
    // 高级查询配置
    const superQueryConfig = reactive(superQuerySchema);
 
+   function bhSubmit() {
+    reload();
+   }
+
    /**
    * 高级查询事件
    */
@@ -140,7 +144,6 @@
      });
   }
   function batchHandleUpdateWarehouse() {
-    console.log(batchHandleUpdateWarehouseModalRef.value);
     if (batchHandleUpdateWarehouseModalRef.value) {
       // 假设组件有一个 open 方法用于打开弹框
       batchHandleUpdateWarehouseModalRef.value.open({ids: selectedRowKeys.value}); 
@@ -156,6 +159,7 @@
        showFooter: true,
      });
    }
+
    /**
     * 详情
    */

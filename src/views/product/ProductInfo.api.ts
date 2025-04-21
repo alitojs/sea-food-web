@@ -12,6 +12,7 @@ enum Api {
   importExcel = '/productInfo/importExcel',
   exportXls = '/productInfo/exportXls',
   productSpecificationList = '/productInfo/queryProductSpecificationByMainId',
+  batchEditWaveHouseByProductSpecification = '/productInfo/batchEditWaveHouseByProductSpecification',
 }
 /**
  * 导出api
@@ -68,6 +69,14 @@ export const batchDelete = (params, handleSuccess) => {
 export const saveOrUpdate = (params, isUpdate) => {
   let url = isUpdate ? Api.edit : Api.save;
   return defHttp.post({url: url, params});
+}
+
+/**
+ * 保存或者更新
+ * @param params
+ */
+export const batchEditWaveHouseByProductSpecificationApi = (params) => {
+  return defHttp.post({url: '/productInfo/batchEditWaveHouseByProductSpecification', params});
 }
 /**
  * 子表列表接口
