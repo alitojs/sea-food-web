@@ -1,13 +1,16 @@
 <template>
-  <div class="p-2">
-    <!--查询区域-->
-    <div class="jeecg-basic-table-form-container">
-      <a-form ref="formRef" @keyup.enter.native="searchQuery" :model="queryParam" :label-col="labelCol" :wrapper-col="wrapperCol">
-        <a-row :gutter="24" />
-      </a-form>
-    </div>
+  <div>
     <!--引用表格-->
-    <BasicTable @register="registerTable" :rowSelection="rowSelection">
+    <BasicTable @register="registerTable" :rowSelection="rowSelection" :expandedRowKeys="expandedRowKeys" @expand="handleExpand">
+      <!-- 内嵌table区域 begin -->
+      <template #expandedRowRender="{ record }">
+        <a-tabs tabPosition="top">
+          <a-tab-pane tab="商品规格表" key="productSpecification" forceRender>
+            <productSpecificationSubTable :id="expandedRowKeys[0]" />
+          </a-tab-pane>
+        </a-tabs>
+      </template>
+      <!-- 内嵌table区域 end -->
       <!--插槽:table标题-->
       <template #tableTitle>
         <a-button type="primary" @click="handleAdd" preIcon="ant-design:plus-outlined"> 新增</a-button>
@@ -19,6 +22,10 @@
               <a-menu-item key="1" @click="batchHandleDelete">
                 <Icon icon="ant-design:delete-outlined" />
                 删除
+              </a-menu-item>
+              <a-menu-item key="1" @click="batchHandleUpdateWarehouse">
+                <Icon icon="ant-design:delete-outlined" />
+                修改仓库
               </a-menu-item>
             </a-menu>
           </template>
@@ -33,39 +40,57 @@
       <!--操作栏-->
       <template #action="{ record }">
         <TableAction :actions="getTableAction(record)" :dropDownActions="getDropDownAction(record)" />
-        <div @click="goTowaveHouse(record)">查看商品</div>
       </template>
+      <!--字段回显插槽-->
       <template #bodyCell="{ column, record, index, text }"> </template>
     </BasicTable>
     <!-- 表单区域 -->
-    <StoreInfoModal ref="registerModal" @success="handleSuccess" />
+    <ProductInfoModal @register="registerModal" @success="handleSuccess" />
+    <BatchHandleUpdateWarehouseModal ref="batchHandleUpdateWarehouseModalRef" @submit="bhSubmit" />
   </div>
 </template>
 
-<script lang="ts" name="store-storeInfo" setup>
-  import { ref, reactive } from 'vue';
+<script lang="ts" name="product-productInfo" setup>
+  import { ref, reactive, computed, unref } from 'vue';
+  import { useRoute } from 'vue-router';
   import { BasicTable, useTable, TableAction } from '/@/components/Table';
   import { useListPage } from '/@/hooks/system/useListPage';
-  import { columns, superQuerySchema } from './StoreInfo.data';
-  import { list, deleteOne, batchDelete, getImportUrl, getExportUrl } from './StoreInfo.api';
+  import { useModal } from '/@/components/Modal';
+  import ProductInfoModal from './components/ProductInfoModal.vue';
+  import BatchHandleUpdateWarehouseModal from './components/BatchHandleUpdateWarehouseModal.vue';
+  import ProductSpecificationSubTable from './subTables/ProductSpecificationSubTable.vue';
+  import { columns, searchFormSchema, superQuerySchema } from './ProductInfo.data';
+  import { list, deleteOne, batchDelete, getImportUrl, getExportUrl } from './ProductInfo.api';
   import { downloadFile } from '/@/utils/common/renderUtils';
-  import StoreInfoModal from './components/StoreInfoModal.vue';
   import { useUserStore } from '/@/store/modules/user';
-  import { router } from '/@/router';
-
-  const formRef = ref();
   const queryParam = reactive<any>({});
-  const toggleSearchStatus = ref<boolean>(false);
-  const registerModal = ref();
+  const route = useRoute();
+  // 从URL获取参数
+  const storeId = route.query.storeId;
+  if (storeId) {
+    queryParam.storeId = storeId;
+  }
+  // 展开key
+  const expandedRowKeys = ref<any[]>([]);
+  const batchHandleUpdateWarehouseModalRef = ref(null);
+  //注册model
+  const [registerModal, { openModal }] = useModal();
   const userStore = useUserStore();
   //注册table数据
   const { prefixCls, tableContext, onExportXls, onImportXls } = useListPage({
     tableProps: {
-      title: '店铺表',
+      title: '商品信息表',
       api: list,
       columns,
       canResize: false,
-      useSearchForm: false,
+      formConfig: {
+        //labelWidth: 120,
+        schemas: searchFormSchema,
+        autoSubmitOnEnter: true,
+        showAdvancedButton: true,
+        fieldMapToNumber: [],
+        fieldMapToTime: [],
+      },
       actionColumn: {
         width: 120,
         fixed: 'right',
@@ -75,7 +100,7 @@
       },
     },
     exportConfig: {
-      name: '店铺表',
+      name: '商品信息表',
       url: getExportUrl,
       params: queryParam,
     },
@@ -84,21 +109,15 @@
       success: handleSuccess,
     },
   });
-  const [registerTable, { reload, collapseAll, updateTableDataRecord, findTableDataRecord, getDataSource }, { rowSelection, selectedRowKeys }] =
-    tableContext;
-  const labelCol = reactive({
-    xs: 24,
-    sm: 4,
-    xl: 6,
-    xxl: 4,
-  });
-  const wrapperCol = reactive({
-    xs: 24,
-    sm: 20,
-  });
+
+  const [registerTable, { reload }, { rowSelection, selectedRowKeys }] = tableContext;
 
   // 高级查询配置
   const superQueryConfig = reactive(superQuerySchema);
+
+  function bhSubmit() {
+    reload();
+  }
 
   /**
    * 高级查询事件
@@ -107,49 +126,60 @@
     Object.keys(params).map((k) => {
       queryParam[k] = params[k];
     });
-    searchQuery();
+    reload();
   }
 
-  function goTowaveHouse(obj) {
-    router.push({
-      path: '/ProductInfoListByStoreId',
-      query: {
-        storeId: obj.id,
-      },
-    });
+  /**
+   * 展开事件
+   * */
+  function handleExpand(expanded, record) {
+    expandedRowKeys.value = [];
+    if (expanded === true) {
+      expandedRowKeys.value.push(record.id);
+    }
   }
-
   /**
    * 新增事件
    */
   function handleAdd() {
-    registerModal.value.disableSubmit = false;
-    registerModal.value.add();
+    openModal(true, {
+      isUpdate: false,
+      showFooter: true,
+    });
   }
-
+  function batchHandleUpdateWarehouse() {
+    if (batchHandleUpdateWarehouseModalRef.value) {
+      // 假设组件有一个 open 方法用于打开弹框
+      batchHandleUpdateWarehouseModalRef.value.open({ ids: selectedRowKeys.value });
+    }
+  }
   /**
    * 编辑事件
    */
   function handleEdit(record: Recordable) {
-    registerModal.value.disableSubmit = false;
-    registerModal.value.edit(record);
+    openModal(true, {
+      record,
+      isUpdate: true,
+      showFooter: true,
+    });
   }
 
   /**
    * 详情
    */
   function handleDetail(record: Recordable) {
-    registerModal.value.disableSubmit = true;
-    registerModal.value.edit(record);
+    openModal(true, {
+      record,
+      isUpdate: true,
+      showFooter: false,
+    });
   }
-
   /**
    * 删除事件
    */
   async function handleDelete(record) {
     await deleteOne({ id: record.id }, handleSuccess);
   }
-
   /**
    * 批量删除事件
    */
@@ -163,7 +193,6 @@
   function handleSuccess() {
     (selectedRowKeys.value = []) && reload();
   }
-
   /**
    * 操作栏
    */
@@ -195,48 +224,11 @@
       },
     ];
   }
-
-  /**
-   * 查询
-   */
-  function searchQuery() {
-    reload();
-  }
-
-  /**
-   * 重置
-   */
-  function searchReset() {
-    formRef.value.resetFields();
-    selectedRowKeys.value = [];
-    //刷新数据
-    reload();
-  }
 </script>
 
-<style lang="less" scoped>
-  .jeecg-basic-table-form-container {
-    padding: 0;
-    .table-page-search-submitButtons {
-      display: block;
-      margin-bottom: 24px;
-      white-space: nowrap;
-    }
-    .query-group-cust {
-      min-width: 100px !important;
-    }
-    .query-group-split-cust {
-      width: 30px;
-      display: inline-block;
-      text-align: center;
-    }
-    .ant-form-item:not(.ant-form-item-with-help) {
-      margin-bottom: 16px;
-      height: 32px;
-    }
-    :deep(.ant-picker),
-    :deep(.ant-input-number) {
-      width: 100%;
-    }
+<style scoped>
+  :deep(.ant-picker),
+  :deep(.ant-input-number) {
+    width: 100%;
   }
 </style>
